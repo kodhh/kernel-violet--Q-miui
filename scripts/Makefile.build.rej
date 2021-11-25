@@ -1,0 +1,21 @@
+--- scripts/Makefile.build
++++ scripts/Makefile.build
+@@ -257,6 +257,7 @@ cmd_record_mcount =						\
+ 	     "$(CC_FLAGS_FTRACE)" ]; then			\
+ 		$(sub_cmd_record_mcount)			\
+ 	fi;
++endif # -record-mcount
+ endif # CONFIG_FTRACE_MCOUNT_RECORD
+ 
+ ifdef CONFIG_STACK_VALIDATION
+--- scripts/Makefile.build
++++ scripts/Makefile.build
+@@ -254,7 +251,7 @@ cmd_record_mcount =						\
+ 	     "$(CC_FLAGS_FTRACE)" ]; then			\
+ 		$(sub_cmd_record_mcount)			\
+ 	fi;
+-endif # -record-mcount
++endif # CC_USING_RECORD_MCOUNT
+ endif # CONFIG_FTRACE_MCOUNT_RECORD
+ 
+ ifdef CONFIG_STACK_VALIDATION

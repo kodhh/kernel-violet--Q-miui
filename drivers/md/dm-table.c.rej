@@ -1,0 +1,108 @@
+--- drivers/md/dm-table.c
++++ drivers/md/dm-table.c
+@@ -1723,29 +1763,12 @@ static int device_is_not_random(struct dm_target *ti, struct dm_dev *dev,
+ 	return q && !blk_queue_add_random(q);
+ }
+ 
+-static int queue_supports_sg_merge(struct dm_target *ti, struct dm_dev *dev,
+-				   sector_t start, sector_t len, void *data)
++static int queue_no_sg_merge(struct dm_target *ti, struct dm_dev *dev,
++			     sector_t start, sector_t len, void *data)
+ {
+ 	struct request_queue *q = bdev_get_queue(dev->bdev);
+ 
+-	return q && !test_bit(QUEUE_FLAG_NO_SG_MERGE, &q->queue_flags);
+-}
+-
+-static bool dm_table_all_devices_attribute(struct dm_table *t,
+-					   iterate_devices_callout_fn func)
+-{
+-	struct dm_target *ti;
+-	unsigned i;
+-
+-	for (i = 0; i < dm_table_get_num_targets(t); i++) {
+-		ti = dm_table_get_target(t, i);
+-
+-		if (!ti->type->iterate_devices ||
+-		    !ti->type->iterate_devices(ti, func, NULL))
+-			return false;
+-	}
+-
+-	return true;
++	return q && test_bit(QUEUE_FLAG_NO_SG_MERGE, &q->queue_flags);
+ }
+ 
+ static int device_not_write_same_capable(struct dm_target *ti, struct dm_dev *dev,
+@@ -1875,28 +1877,31 @@ void dm_table_set_restrictions(struct dm_table *t, struct request_queue *q,
+ 		dax_write_cache(t->md->dax_dev, true);
+ 
+ 	/* Ensure that all underlying devices are non-rotational. */
+-	if (dm_table_all_devices_attribute(t, device_is_nonrot))
+-		queue_flag_set_unlocked(QUEUE_FLAG_NONROT, q);
+-	else
++	if (dm_table_any_dev_attr(t, device_is_rotational))
+ 		queue_flag_clear_unlocked(QUEUE_FLAG_NONROT, q);
++	else
++		queue_flag_set_unlocked(QUEUE_FLAG_NONROT, q);
+ 
+ 	if (!dm_table_supports_write_same(t))
+ 		q->limits.max_write_same_sectors = 0;
+ 	if (!dm_table_supports_write_zeroes(t))
+ 		q->limits.max_write_zeroes_sectors = 0;
+ 
+-	if (dm_table_all_devices_attribute(t, queue_supports_sg_merge))
+-		queue_flag_clear_unlocked(QUEUE_FLAG_NO_SG_MERGE, q);
+-	else
++	if (dm_table_any_dev_attr(t, queue_no_sg_merge))
+ 		queue_flag_set_unlocked(QUEUE_FLAG_NO_SG_MERGE, q);
++	else
++		queue_flag_clear_unlocked(QUEUE_FLAG_NO_SG_MERGE, q);
+ 
+ 	dm_table_verify_integrity(t);
+ 
+ 	/*
+ 	 * Some devices don't use blk_integrity but still want stable pages
+ 	 * because they do their own checksumming.
++	 * If any underlying device requires stable pages, a table must require
++	 * them as well.  Only targets that support iterate_devices are considered:
++	 * don't want error, zero, etc to require stable pages.
+ 	 */
+-	if (dm_table_requires_stable_pages(t))
++	if (dm_table_any_dev_attr(t, device_requires_stable_pages))
+ 		q->backing_dev_info->capabilities |= BDI_CAP_STABLE_WRITES;
+ 	else
+ 		q->backing_dev_info->capabilities &= ~BDI_CAP_STABLE_WRITES;
+--- drivers/md/dm-table.c
++++ drivers/md/dm-table.c
+@@ -1820,11 +1803,11 @@ void dm_table_set_restrictions(struct dm_table *t, struct request_queue *q,
+ 	else
+ 		queue_flag_clear_unlocked(QUEUE_FLAG_DAX, q);
+ 
+-	if (dm_table_any_dev_attr(t, device_dax_write_cache_enabled))
++	if (dm_table_any_dev_attr(t, device_dax_write_cache_enabled, NULL))
+ 		dax_write_cache(t->md->dax_dev, true);
+ 
+ 	/* Ensure that all underlying devices are non-rotational. */
+-	if (dm_table_any_dev_attr(t, device_is_rotational))
++	if (dm_table_any_dev_attr(t, device_is_rotational, NULL))
+ 		queue_flag_clear_unlocked(QUEUE_FLAG_NONROT, q);
+ 	else
+ 		queue_flag_set_unlocked(QUEUE_FLAG_NONROT, q);
+@@ -1834,7 +1817,7 @@ void dm_table_set_restrictions(struct dm_table *t, struct request_queue *q,
+ 	if (!dm_table_supports_write_zeroes(t))
+ 		q->limits.max_write_zeroes_sectors = 0;
+ 
+-	if (dm_table_any_dev_attr(t, queue_no_sg_merge))
++	if (dm_table_any_dev_attr(t, queue_no_sg_merge, NULL))
+ 		queue_flag_set_unlocked(QUEUE_FLAG_NO_SG_MERGE, q);
+ 	else
+ 		queue_flag_clear_unlocked(QUEUE_FLAG_NO_SG_MERGE, q);
+@@ -1848,7 +1831,7 @@ void dm_table_set_restrictions(struct dm_table *t, struct request_queue *q,
+ 	 * them as well.  Only targets that support iterate_devices are considered:
+ 	 * don't want error, zero, etc to require stable pages.
+ 	 */
+-	if (dm_table_any_dev_attr(t, device_requires_stable_pages))
++	if (dm_table_any_dev_attr(t, device_requires_stable_pages, NULL))
+ 		q->backing_dev_info->capabilities |= BDI_CAP_STABLE_WRITES;
+ 	else
+ 		q->backing_dev_info->capabilities &= ~BDI_CAP_STABLE_WRITES;

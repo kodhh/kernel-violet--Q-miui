@@ -1,0 +1,12 @@
+--- drivers/usb/core/hub.c
++++ drivers/usb/core/hub.c
+@@ -3496,9 +3496,6 @@ int usb_port_resume(struct usb_device *udev, pm_message_t msg)
+ 		 * sequence.
+ 		 */
+ 		status = hub_port_status(hub, port1, &portstatus, &portchange);
+-
+-		/* TRSMRCY = 10 msec */
+-		msleep(10);
+ 	}
+ 
+  SuspendCleared:

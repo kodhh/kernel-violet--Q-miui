@@ -1,0 +1,17 @@
+--- kernel/sched/fair.c
++++ kernel/sched/fair.c
+@@ -5810,11 +5811,11 @@ static int select_idle_cpu(struct task_struct *p, struct sched_domain *sd, int t
+ 
+ 	time = local_clock();
+ 
+-	for_each_cpu_wrap(cpu, sched_domain_span(sd), target) {
++	cpumask_and(cpus, sched_domain_span(sd), &p->cpus_allowed);
++
++	for_each_cpu_wrap(cpu, cpus, target) {
+ 		if (!--nr)
+ 			return -1;
+-		if (!cpumask_test_cpu(cpu, &p->cpus_allowed))
+-			continue;
+ 		if (idle_cpu(cpu))
+ 			break;
+ 	}
