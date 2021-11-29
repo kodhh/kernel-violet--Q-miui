@@ -120,9 +120,5 @@ struct crypto_report_acomp {
 	char type[CRYPTO_MAX_NAME];
 };
 
-struct crypto_report_acomp {
-	char type[CRYPTO_MAX_NAME];
-};
-
 #define CRYPTO_REPORT_MAXSIZE (sizeof(struct crypto_user_alg) + \
 			       sizeof(struct crypto_report_blkcipher))
