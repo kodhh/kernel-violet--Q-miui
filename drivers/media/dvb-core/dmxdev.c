@@ -3759,7 +3759,7 @@ static int dvb_dmxdev_filter_free(struct dmxdev *dmxdev,
 
 static inline void invert_mode(struct dmx_filter *filter)
 {
-	int i, ret;
+	int i;
 
 	for (i = 0; i < DMX_FILTER_SIZE; i++)
 		filter->mode[i] ^= 0xff;
@@ -4842,7 +4842,7 @@ static const struct file_operations dbgfs_filters_fops = {
 
 int dvb_dmxdev_init(struct dmxdev *dmxdev, struct dvb_adapter *dvb_adapter)
 {
-	int i;
+	int i, ret;
 	struct dmx_caps caps;
 
 	if (dmxdev->demux->open(dmxdev->demux) < 0)
