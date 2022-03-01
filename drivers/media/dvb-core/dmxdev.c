@@ -3759,7 +3759,7 @@ static int dvb_dmxdev_filter_free(struct dmxdev *dmxdev,
 
 static inline void invert_mode(struct dmx_filter *filter)
 {
-	int i;
+	int i, ret;
 
 	for (i = 0; i < DMX_FILTER_SIZE; i++)
 		filter->mode[i] ^= 0xff;
